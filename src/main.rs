@@ -46,7 +46,7 @@ fn setup(mut commands: Commands, mut server: ResMut<AssetServer>) -> Result<()> 
         DirectionalLight {
             color: Color::srgb_u8(255, 224, 141),
             shadows_enabled: true,
-            illuminance: 130000.0,
+            illuminance: 10000.0,
             ..default()
         },
         Transform::from_xyz(4.0, 4.0, 3.0).looking_at((0.0, 0.0, 0.0).into(), Dir3::Y),
@@ -84,17 +84,20 @@ fn setup(mut commands: Commands, mut server: ResMut<AssetServer>) -> Result<()> 
         .or(args.options.environment_light_scale)
         .unwrap_or(5000.0);
 
-    let env_path = env_opts
-        .map(|x| x.environment_light_image)
-        .or(args.options.environment_light_image)
-        .unwrap_or(PathBuf::from("ibl/workshop_4k_small.exr"));
+    //let env_path = env_opts
+    //    .map(|x| x.environment_light_image)
+    //    .or(args.options.environment_light_image)
+    //    .unwrap_or(PathBuf::from("ibl/workshop_diffuse.exr"));
 
     {
-        let env_map = server.load(env_path);
+        let env_map_diff = server.load("ibl/workshop_diffuse.ktx2");
+        let env_map_spec = server.load("ibl/workshop_specular.ktx2");
 
         commands.insert_resource(EnvironmentLighting {
             intensity: env_intensity,
-            equirect: env_map,
+            diffuse: env_map_diff,
+            specular: env_map_spec,
+            skybox_color: Some(Color::srgb(0.5, 0.5, 0.5).into()),
         });
     }
 
