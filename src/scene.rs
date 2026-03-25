@@ -50,6 +50,8 @@ pub fn import_scene(
                     order: scene_i as u32,
                 },
                 Visibility::Hidden,
+                Replicated,
+                PropagateReplication::default(),
                 ChildOf(root),
             ))
             .id();
@@ -63,8 +65,7 @@ pub fn import_scene(
         for content in ascene.content {
             commands.spawn((
                 SceneRoot(server.load_override(GltfAssetLabel::Scene(0).from_asset(content))),
-                Replicated,
-                PropagateReplication::default(),
+                Visibility::Inherited,
                 ChildOf(group),
             ));
         }
