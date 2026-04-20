@@ -4,7 +4,7 @@ version = "0.2.0"
 edition = "2024"
 
 [dependencies]
-tephrite_rs = { git = "https://github.com/InsightCenterNoodles/tephrite_rs.git", rev = "49713c1b5d4731db38c74b88589a514196ec0eac" }
+tephrite_rs = { git = "https://github.com/InsightCenterNoodles/tephrite_rs.git", rev = "4edab7f25f86630d6b66e3e540b63071e8062715" }
 bevy = "0.18.1"
 clap = { version = "4.5", features = ["derive"] }
 serde = { version = "*", features = ["derive"] }

@@ -41,18 +41,6 @@ impl Plugin for LoadScenePlugin {
 }
 
 fn setup(mut commands: Commands, mut server: ResMut<AssetServer>) -> Result<()> {
-    // light
-    commands.spawn((
-        DirectionalLight {
-            color: Color::srgb_u8(255, 224, 141),
-            shadows_enabled: true,
-            illuminance: 10000.0,
-            ..default()
-        },
-        Transform::from_xyz(4.0, 4.0, 3.0).looking_at((0.0, 0.0, 0.0).into(), Dir3::Y),
-        Replicated,
-    ));
-
     let mut env_opts = None;
 
     let root = commands
@@ -99,6 +87,25 @@ fn setup(mut commands: Commands, mut server: ResMut<AssetServer>) -> Result<()> 
             specular: env_map_spec,
             skybox_color: Some(Color::srgb(0.5, 0.5, 0.5).into()),
         });
+    }
+
+    {
+        let intensity = env_opts
+            .as_ref()
+            .and_then(|x| x.directional_light_scale)
+            .unwrap_or(10000.0);
+
+        // light
+        commands.spawn((
+            DirectionalLight {
+                color: Color::srgb_u8(255, 224, 141),
+                shadows_enabled: true,
+                illuminance: intensity,
+                ..default()
+            },
+            Transform::from_xyz(4.0, 4.0, 3.0).looking_at((0.0, 0.0, 0.0).into(), Dir3::Y),
+            Replicated,
+        ));
     }
 
     Ok(())

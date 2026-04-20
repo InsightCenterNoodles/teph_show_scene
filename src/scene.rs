@@ -19,9 +19,11 @@ struct AScene {
 
 #[derive(Debug, Default, Deserialize)]
 pub struct EnvironmentOptions {
-    pub environment_light_image: PathBuf,
+    pub environment_light_image: Option<PathBuf>,
 
     pub environment_light_scale: Option<f32>,
+
+    pub directional_light_scale: Option<f32>,
 }
 
 pub fn import_gltf(p: PathBuf, root: Entity, commands: &mut Commands, server: &mut AssetServer) {
