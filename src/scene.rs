@@ -3,7 +3,7 @@ use serde::Deserialize;
 use std::path::PathBuf;
 use tephrite_rs::prelude::*;
 
-use crate::components::{CurrentGroup, Group};
+use crate::components::{CurrentGroup, Group, OptionalContent};
 
 #[derive(Debug, Default, Deserialize)]
 struct SceneFile {
@@ -13,8 +13,12 @@ struct SceneFile {
 
 #[derive(Debug, Default, Deserialize)]
 struct AScene {
-    //title: String,
+    title: Option<String>,
+
     content: Vec<PathBuf>,
+
+    // Optional content that be shown with a button press
+    optional: Option<Vec<PathBuf>>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -71,6 +75,19 @@ pub fn import_scene(
                 ChildOf(group),
             ));
         }
+
+        if let Some(optional_paths) = ascene.optional {
+            for content in optional_paths {
+                commands.spawn((
+                    SceneRoot(server.load_override(GltfAssetLabel::Scene(0).from_asset(content))),
+                    Visibility::Hidden,
+                    OptionalContent,
+                    ChildOf(group),
+                ));
+            }
+        }
+
+        info!("Imported scene {scene_i}");
     }
 
     Ok(file.environment)

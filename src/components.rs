@@ -8,3 +8,6 @@ pub struct Group {
 #[derive(Debug, Component)]
 #[require(Group)]
 pub struct CurrentGroup;
+
+#[derive(Debug, Default, Component)]
+pub struct OptionalContent;
