@@ -4,14 +4,11 @@ version = "0.2.0"
 edition = "2024"
 
 [dependencies]
-tephrite_rs = { git = "https://github.com/InsightCenterNoodles/tephrite_rs.git", rev = "4edab7f25f86630d6b66e3e540b63071e8062715" }
+tephrite_rs = { git = "https://github.com/InsightCenterNoodles/tephrite_rs.git", rev = "5fe7f5ae7f01afd444d9c9c9de08a3ff1b76e23e" }
 bevy = "0.18.1"
 clap = { version = "4.5", features = ["derive"] }
 serde = { version = "*", features = ["derive"] }
 toml = "0.9"
-
-[patch.crates-io]
-bevy = { git = "https://github.com/nicholasbl/bevy", branch = "cave_patches" }
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]
@@ -20,4 +17,3 @@ opt-level = 1
 # Enable a large amount of optimization in the dev profile for dependencies.
 [profile.dev.package."*"]
 opt-level = 3
-
