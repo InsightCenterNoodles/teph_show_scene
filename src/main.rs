@@ -112,7 +112,7 @@ fn setup(mut commands: Commands, mut server: ResMut<AssetServer>) -> Result<()> 
 }
 
 fn on_global_activate(
-    trigger: On<GlobalActivate>,
+    trigger: On<GlobalInteractorAction>,
     current: Query<(Entity, &CurrentGroup)>,
     known: Query<(Entity, &Group)>,
     mut commands: Commands,
@@ -133,9 +133,9 @@ fn on_global_activate(
 
     let current_len = v.len();
 
-    let next_place = match trigger.button {
-        JoystickButton::TL => (current_place + current_len - 1) % current_len,
-        JoystickButton::TR => (current_place + 1) % current_len,
+    let next_place = match trigger.action {
+        InteractorAction::Previous => (current_place + current_len - 1) % current_len,
+        InteractorAction::Next => (current_place + 1) % current_len,
         _ => {
             return;
         }
