@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use clap::Parser;
 use tephrite_rs::prelude::*;
 
-use crate::components::{CurrentGroup, Group};
+use crate::components::{CurrentGroup, Group, OptionalContent};
 
 #[derive(Debug, clap::Parser)]
 #[command(version, about)]
@@ -115,8 +115,28 @@ fn on_global_activate(
     trigger: On<GlobalInteractorAction>,
     current: Query<(Entity, &CurrentGroup)>,
     known: Query<(Entity, &Group)>,
+    mut optional_content: Query<&mut Visibility, With<OptionalContent>>,
+    children_of: Query<&Children>,
     mut commands: Commands,
 ) {
+    if trigger.action == InteractorAction::Secondary {
+        let Some(current_group_children) = current
+            .single()
+            .ok()
+            .and_then(|x| children_of.get(x.0).ok())
+        else {
+            return;
+        };
+
+        for child in current_group_children {
+            if let Ok(mut vis) = optional_content.get_mut(*child) {
+                vis.toggle_inherited_hidden();
+            }
+        }
+
+        return;
+    }
+
     let mut v: Vec<_> = known.iter().collect();
 
     v.sort_unstable_by_key(|f| f.1.order);
