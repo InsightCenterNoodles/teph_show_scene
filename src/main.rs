@@ -35,12 +35,19 @@ impl Plugin for LoadScenePlugin {
         app.add_systems(Startup, setup);
 
         app.add_observer(on_global_activate);
+        app.add_systems(Update, scene::check_infographic_updates);
 
         app.add_plugins(NavigationPlugin::new(NavigatorMode::ObjectCentric));
     }
 }
 
-fn setup(mut commands: Commands, mut server: ResMut<AssetServer>) -> Result<()> {
+fn setup(
+    mut commands: Commands,
+    mut server: ResMut<AssetServer>,
+    mut mat_assets: ResMut<Assets<StandardMaterial>>,
+    mut mesh_assets: ResMut<Assets<Mesh>>,
+    mut image_assets: ResMut<Assets<Image>>,
+) -> Result<()> {
     let mut env_opts = None;
 
     let root = commands
@@ -52,7 +59,15 @@ fn setup(mut commands: Commands, mut server: ResMut<AssetServer>) -> Result<()> 
     if let Some(ext) = args.input.extension() {
         match ext.to_str() {
             Some("toml") => {
-                env_opts = scene::import_scene(args.input, root, &mut commands, &mut server)?;
+                env_opts = scene::import_scene(
+                    args.input,
+                    root,
+                    &mut commands,
+                    &mut server,
+                    &mut mat_assets,
+                    &mut mesh_assets,
+                    &mut image_assets,
+                )?;
             }
             Some("glb") | Some("gltf") => {
                 scene::import_gltf(args.input, root, &mut commands, &mut server);
@@ -85,7 +100,7 @@ fn setup(mut commands: Commands, mut server: ResMut<AssetServer>) -> Result<()> 
             intensity: env_intensity,
             diffuse: env_map_diff,
             specular: env_map_spec,
-            skybox_color: Some(Color::srgb(0.5, 0.5, 0.5).into()),
+            skybox_color: Some(Color::srgb(0.5, 0.5, 0.5)),
         });
     }
 

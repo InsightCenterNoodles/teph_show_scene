@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{image::ImageLoaderSettings, prelude::*};
 use serde::Deserialize;
 use std::path::PathBuf;
 use tephrite_rs::prelude::*;
@@ -6,9 +6,18 @@ use tephrite_rs::prelude::*;
 use crate::components::{CurrentGroup, Group, OptionalContent};
 
 #[derive(Debug, Default, Deserialize)]
+struct InfoGraphic {
+    path: PathBuf,
+    location: Vec3,
+    scale: Option<f32>,
+    normal: Option<Vec3>,
+}
+
+#[derive(Debug, Default, Deserialize)]
 struct SceneFile {
     scenes: Vec<AScene>,
     environment: Option<EnvironmentOptions>,
+    info_graphic: Option<InfoGraphic>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -44,6 +53,9 @@ pub fn import_scene(
     root: Entity,
     commands: &mut Commands,
     server: &mut AssetServer,
+    mat_assets: &mut Assets<StandardMaterial>,
+    mesh_assets: &mut Assets<Mesh>,
+    image_assets: &mut Assets<Image>,
 ) -> Result<Option<EnvironmentOptions>> {
     let file = std::fs::read(p)?;
 
@@ -90,5 +102,79 @@ pub fn import_scene(
         info!("Imported scene {scene_i}");
     }
 
+    if let Some(info_graphic) = file.info_graphic {
+        let image = server.load_with_settings_override(
+            info_graphic.path.clone(),
+            |settings: &mut ImageLoaderSettings| {
+                settings
+                    .sampler
+                    .get_or_init_descriptor()
+                    .set_filter(bevy::image::ImageFilterMode::Linear);
+            },
+        );
+
+        let mat = mat_assets.add(StandardMaterial {
+            base_color_texture: Some(image.clone()),
+            unlit: true,
+            alpha_mode: AlphaMode::Blend,
+            ..Default::default()
+        });
+
+        let mesh = mesh_assets.add(Plane3d {
+            normal: Dir3::NEG_Z,
+            half_size: vec2(0.5, 0.5),
+        });
+
+        let rot = Quat::look_at_lh(Vec3::ZERO, info_graphic.normal.unwrap_or(Vec3::Z), Vec3::Y);
+
+        // we may not have the asset size available yet. Defer sizing.
+
+        let mut tf = Transform::from_translation(info_graphic.location).with_rotation(rot);
+
+        if let Some(resolved) = image_assets.get(&image) {
+            finalize_image(resolved, &mut tf, info_graphic.scale.unwrap_or(1.0));
+        }
+
+        commands.spawn((
+            tf,
+            MeshMaterial3d(mat),
+            Mesh3d(mesh),
+            IsInfoGraphic(image, info_graphic.scale.unwrap_or(1.0)),
+            Replicated, // is not to be part of the controlled navigation
+        ));
+    }
+
     Ok(file.environment)
+}
+
+fn finalize_image(image: &Image, transform: &mut Transform, scale: f32) {
+    let ratio = image.size_f32() / image.size_f32().max_element();
+    let ratio = ratio * scale;
+
+    transform.scale = vec3(ratio.x, ratio.y, 1.0);
+}
+
+#[derive(Debug, Default, Component)]
+pub struct IsInfoGraphic(Handle<Image>, f32);
+
+pub fn check_infographic_updates(
+    mut asset_events: MessageReader<AssetEvent<Image>>,
+    mut q_infographic_check: Query<(&mut Transform, &IsInfoGraphic)>,
+    image_assets: Res<Assets<Image>>,
+) {
+    for event in asset_events.read() {
+        match event {
+            AssetEvent::Added { id } | AssetEvent::Modified { id } => {
+                // should be a short loop
+                for mut infographic in &mut q_infographic_check {
+                    if infographic.1.0.id() == *id {
+                        if let Some(image) = image_assets.get(*id) {
+                            finalize_image(image, &mut infographic.0, infographic.1.1);
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
 }
