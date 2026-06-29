@@ -3,7 +3,7 @@ use serde::Deserialize;
 use std::path::PathBuf;
 use tephrite_rs::prelude::*;
 
-use crate::components::{CurrentGroup, Group, OptionalContent};
+use crate::components::{ContentIndex, CurrentGroup, Group};
 
 #[derive(Debug, Default, Deserialize)]
 struct InfoGraphic {
@@ -84,16 +84,17 @@ pub fn import_scene(
             commands.spawn((
                 SceneRoot(server.load_override(GltfAssetLabel::Scene(0).from_asset(content))),
                 Visibility::Inherited,
+                ContentIndex(0),
                 ChildOf(group),
             ));
         }
 
         if let Some(optional_paths) = ascene.optional {
-            for content in optional_paths {
+            for (content_i, content) in optional_paths.into_iter().enumerate() {
                 commands.spawn((
                     SceneRoot(server.load_override(GltfAssetLabel::Scene(0).from_asset(content))),
                     Visibility::Hidden,
-                    OptionalContent,
+                    ContentIndex(content_i as u32),
                     ChildOf(group),
                 ));
             }
@@ -117,11 +118,12 @@ pub fn import_scene(
             base_color_texture: Some(image.clone()),
             unlit: true,
             alpha_mode: AlphaMode::Blend,
+            double_sided: true,
             ..Default::default()
         });
 
         let mesh = mesh_assets.add(Plane3d {
-            normal: Dir3::NEG_Z,
+            normal: Dir3::Z,
             half_size: vec2(0.5, 0.5),
         });
 
@@ -152,6 +154,8 @@ fn finalize_image(image: &Image, transform: &mut Transform, scale: f32) {
     let ratio = ratio * scale;
 
     transform.scale = vec3(ratio.x, ratio.y, 1.0);
+
+    info!("Finalizing infographic {transform:?}");
 }
 
 #[derive(Debug, Default, Component)]

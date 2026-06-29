@@ -10,4 +10,4 @@ pub struct Group {
 pub struct CurrentGroup;
 
 #[derive(Debug, Default, Component)]
-pub struct OptionalContent;
+pub struct ContentIndex(pub u32);

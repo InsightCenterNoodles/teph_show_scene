@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use clap::Parser;
 use tephrite_rs::prelude::*;
 
-use crate::components::{CurrentGroup, Group, OptionalContent};
+use crate::components::{ContentIndex, CurrentGroup, Group};
 
 #[derive(Debug, clap::Parser)]
 #[command(version, about)]
@@ -35,7 +35,10 @@ impl Plugin for LoadScenePlugin {
         app.add_systems(Startup, setup);
 
         app.add_observer(on_global_activate);
+        app.add_observer(on_secondary_activate);
         app.add_systems(Update, scene::check_infographic_updates);
+
+        app.init_resource::<SubContentState>();
 
         app.add_plugins(NavigationPlugin::new(NavigatorMode::ObjectCentric));
     }
@@ -126,29 +129,21 @@ fn setup(
     Ok(())
 }
 
+#[derive(Debug, Default, Resource)]
+struct SubContentState {
+    current_index: u32,
+}
+
 fn on_global_activate(
     trigger: On<GlobalInteractorAction>,
     current: Query<(Entity, &CurrentGroup)>,
     known: Query<(Entity, &Group)>,
-    mut optional_content: Query<&mut Visibility, With<OptionalContent>>,
-    children_of: Query<&Children>,
     mut commands: Commands,
 ) {
-    if trigger.action == InteractorAction::Secondary {
-        let Some(current_group_children) = current
-            .single()
-            .ok()
-            .and_then(|x| children_of.get(x.0).ok())
-        else {
-            return;
-        };
-
-        for child in current_group_children {
-            if let Ok(mut vis) = optional_content.get_mut(*child) {
-                vis.toggle_inherited_hidden();
-            }
-        }
-
+    if !matches!(
+        trigger.action,
+        InteractorAction::Previous | InteractorAction::Next,
+    ) {
         return;
     }
 
@@ -186,6 +181,50 @@ fn on_global_activate(
 
     commands.entity(current.0).remove::<CurrentGroup>();
     commands.entity(next_ent.0).insert(CurrentGroup);
+}
+
+fn on_secondary_activate(
+    trigger: On<GlobalInteractorAction>,
+    mut res: ResMut<SubContentState>,
+    mut content_index: Query<(&mut Visibility, &ContentIndex)>,
+) {
+    if !matches!(
+        trigger.action,
+        InteractorAction::Primary | InteractorAction::Secondary,
+    ) {
+        return;
+    }
+
+    // disable current
+
+    let index = res.current_index;
+
+    for (mut vis, content_index) in &mut content_index {
+        if content_index.0 != index {
+            continue;
+        }
+
+        vis.toggle_inherited_hidden();
+    }
+
+    // take action
+
+    res.current_index = match trigger.action {
+        InteractorAction::Primary => res.current_index.saturating_add(1),
+        InteractorAction::Secondary => res.current_index.saturating_sub(1),
+        _ => res.current_index,
+    };
+
+    let index = res.current_index;
+
+    // update
+    for (mut vis, content_index) in &mut content_index {
+        if content_index.0 != index {
+            continue;
+        }
+
+        vis.toggle_inherited_hidden();
+    }
 }
 
 fn main() {
